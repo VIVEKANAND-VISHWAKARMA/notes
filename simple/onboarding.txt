@@ -1,0 +1,16 @@
+New Employee Onboarding - IT Checklist (Captured)
+=================================================
+Captured during recon. Sensitive values redacted before publishing.
+
+1. Create AD account (request via ServiceNow)
+2. Assign to "Domain Users" group
+3. Set temporary password: <REDACTED>
+   (User must change on first login)
+4. Provision laptop from imaging server (<IMAGING_IP>)
+5. Enrol in MFA (postponed until Q2 - budget approval pending)
+
+Findings / attack surface
+-------------------------
+- Temporary passwords follow a predictable, reusable pattern -> spray candidate.
+- MFA is postponed -> password-only auth on many accounts.
+- Imaging server IP leaks a provisioning host worth enumerating.

@@ -1,0 +1,57 @@
+Crypto Notes - GPG & OpenSSL
+============================
+Placeholders used where needed. No secrets stored.
+
+--------------------------------------------------------------------------
+GPG - SYMMETRIC ENCRYPTION
+--------------------------------------------------------------------------
+# Encrypt (CIPHER e.g. AES256; list ciphers with `gpg --version`)
+gpg --symmetric --cipher-algo CIPHER message.txt
+# Output -> message.txt.gpg
+
+# ASCII-armoured output (openable in any text editor)
+gpg --armor --symmetric --cipher-algo CIPHER message.txt
+
+# Decrypt
+gpg --output original_message.txt --decrypt message.gpg
+
+--------------------------------------------------------------------------
+OPENSSL - SYMMETRIC ENCRYPTION
+--------------------------------------------------------------------------
+# Encrypt
+openssl aes-256-cbc -e -in message.txt -out encrypted_message
+
+# Decrypt
+openssl aes-256-cbc -d -in encrypted_message -out original_message.txt
+
+# With key derivation (recommended - defines PBKDF2 iterations)
+openssl aes-256-cbc -pbkdf2 -iter 10000 -e -in message.txt -out encrypted_message
+openssl aes-256-cbc -pbkdf2 -iter 10000 -d -in encrypted_message -out original_message.txt
+
+--------------------------------------------------------------------------
+OPENSSL - ASYMMETRIC (RSA)
+--------------------------------------------------------------------------
+# Generate a 2048-bit RSA private key
+openssl genrsa -out private-key.pem 2048
+
+# Derive the public key from the private key
+openssl rsa -in private-key.pem -pubout -out public-key.pem
+
+# Inspect the RSA variables
+openssl rsa -in private-key.pem -text -noout
+#   p  = prime1        q = prime2
+#   N  = modulus       e = publicExponent
+#   d  = privateExponent
+
+# Encrypt with the recipient's public key
+openssl pkeyutl -encrypt -in plaintext.txt -out ciphertext \
+  -inkey public-key.pem -pubin
+
+# Recipient decrypts with their private key
+openssl pkeyutl -decrypt -in ciphertext -inkey private-key.pem -out decrypted.txt
+
+--------------------------------------------------------------------------
+OPENSSL - DIFFIE-HELLMAN
+--------------------------------------------------------------------------
+# Inspect DH parameters
+openssl dhparam -in dhparams.pem -text -noout

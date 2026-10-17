@@ -1,0 +1,24 @@
+Internal Network Map (Lab / Recon Notes)
+=========================================
+Captured from an internally exposed document during recon. Any real
+credentials have been REDACTED - never store live secrets in notes.
+
+Host                Role                         Notes
+----                ----                         -----
+<WEB_IP>            Web Server                   front-facing, enumerates well
+<DB_IP>             Database Server              MariaDB, PostgreSQL
+<DC_IP>             Domain Controller            dc01.<DOMAIN>
+<BACKUP_IP>         Backup Server                rsync, SSH
+<DEV_IP>            Dev Environment              Docker host
+
+Findings
+--------
+- Dev environment used weak, reused default credentials (value REDACTED).
+- DC hostname pattern: dc01.<DOMAIN>.
+- Backup server exposes rsync + SSH - worth checking for anonymous/weak auth.
+
+Recon takeaway
+--------------
+1. Map every host and its services first (nmap -sV -A).
+2. Look for the "easy" services: dev/docker hosts, backup servers, DB servers.
+3. Never commit the recovered credentials themselves - only the technique.

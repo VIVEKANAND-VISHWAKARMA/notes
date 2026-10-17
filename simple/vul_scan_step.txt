@@ -1,0 +1,16 @@
+Vulnerability Scanning - Best Practices
+=======================================
+1. Start Light: begin with non-intrusive scans to avoid slowing or disrupting
+   the target, especially in shared or production environments.
+2. Right Tooling: match the scanner to the job - Nmap for network discovery,
+   OpenVAS for deep analysis, Nikto for web server checks.
+3. Verify Results: double-check high-severity findings manually because
+   scanners can produce false positives or incomplete information.
+4. Stay Updated: keep scanning tools and vulnerability feeds up to date so the
+   scanner can identify new CVEs and configuration issues.
+5. Use Credentials: when allowed, run authenticated scans to get more accurate
+   visibility into missing patches and internal weaknesses.
+6. Compare Over Time: save scan outputs and compare them regularly to track
+   improvements, detect regressions, and monitor newly introduced issues.
+7. Scan Smart: schedule scans during low-traffic hours since vulnerability
+   scanning can consume noticeable network and system resources.

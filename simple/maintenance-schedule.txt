@@ -1,0 +1,14 @@
+Scheduled Maintenance Windows (Captured)
+========================================
+Captured during recon. Shows patch hygiene of the target.
+
+- Patching: First Sunday of each month, 02:00-06:00 UTC
+- Last patch cycle: 2024-01-07 (SKIPPED - change freeze)
+- Next patch cycle: TBD
+- Note: Several servers are 3+ months behind on patches.
+
+Findings
+--------
+- Unpatched/unmanaged hosts -> check for known CVEs per exposed service.
+- "Change freeze" means exploits for recently disclosed bugs may still land.
+- Pair this with the Nmap version output to pick matching exploits.

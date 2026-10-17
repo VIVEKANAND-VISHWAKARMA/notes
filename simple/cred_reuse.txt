@@ -1,0 +1,20 @@
+Credential Reuse Workflow
+=========================
+Use the valid usernames from cred.txt against login endpoints, then reuse any
+password found on other services (SSH, SMB, FTP, DB, web apps).
+
+Notes / findings
+----------------
+(fill in as you go)
+
+# Example flow:
+#   1. Spray the user list against the login form (e.g. hydra / ffuf).
+#   2. Any hit -> try the same creds on other services:
+hydra -L users.txt -P passwords.txt ssh://<TARGET_IP>
+hydra -L users.txt -P passwords.txt <TARGET_IP> ftp
+#   3. Recheck web logins, phpMyAdmin, DB, SMB.
+
+Reminder
+--------
+Never store the recovered plaintext passwords in notes that may be published.
+Reference them as <REDACTED> or keep them only in a local, git-ignored file.

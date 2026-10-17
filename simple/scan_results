@@ -1,0 +1,35 @@
+Nmap Scan Results (Sanitized)
+=============================
+Target IP and any unique fingerprint values redacted. Keep findings,
+drop identifiers when publishing.
+
+Command
+-------
+nmap --privileged -sV -sC -p- -oN scan_results <TARGET_IP>
+
+Open ports / services
+---------------------
+21/tcp   open  ftp         vsftpd 3.0.5
+22/tcp   open  ssh         OpenSSH 8.9p1 Ubuntu
+80/tcp   open  http        Apache httpd 2.4.52 (Ubuntu)
+139/tcp  open  netbios-ssn Samba smbd 4
+445/tcp  open  netbios-ssn Samba smbd 4
+3306/tcp open  mysql       MariaDB 10.6.23
+
+Findings
+--------
+- FTP: Anonymous login allowed, /pub directory readable.
+- HTTP: Title "WidgetCorp Internal Portal".
+- HTTP: robots.txt disallows: /admin/ /backup/ /config.php.bak /info.php
+- SMB: Message signing enabled but NOT required (relay candidate).
+- MySQL: MariaDB 10.6.23 exposed (auth plugin: mysql_native_password).
+
+Triage / next steps
+-------------------
+1. FTP anon -> grab /pub contents.
+2. HTTP -> check robots.txt paths (/admin, /backup, /config.php.bak, /info.php).
+3. MariaDB exposed -> test for weak/default creds (see network-map.txt).
+4. SMB signing off -> consider relay attacks in an AD environment.
+
+Note: original scan had a unique host timestamp, host keys and DB salt -
+those have been stripped since they fingerprint the specific box.
